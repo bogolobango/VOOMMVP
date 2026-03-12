@@ -1,0 +1,128 @@
+PS C:\Users\JStephen> # 1. Pull the branch
+PS C:\Users\JStephen> git fetch origin claude/claude-md-mmmy9ziaxxzhhy3y-qQJYD
+fatal: not a git repository (or any of the parent directories): .git
+PS C:\Users\JStephen> git checkout claude/claude-md-mmmy9ziaxxzhhy3y-qQJYD
+fatal: not a git repository (or any of the parent directories): .git
+PS C:\Users\JStephen>
+PS C:\Users\JStephen> # 2. Install deps
+PS C:\Users\JStephen> pnpm install
+pnpm : The term 'pnpm' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ pnpm install
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (pnpm:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\JStephen>
+PS C:\Users\JStephen> # 3. Push schema to your DB (new fb_post_id, source, fb_seller_profile_url columns)
+PS C:\Users\JStephen> DATABASE_URL="your_db_url" pnpm --filter @workspace/db run push
+DATABASE_URL=your_db_url : The term 'DATABASE_URL=your_db_url' is not recognized as the name of a cmdlet, function,
+script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is
+correct and try again.
+At line:1 char:1
++ DATABASE_URL="your_db_url" pnpm --filter @workspace/db run push
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (DATABASE_URL=your_db_url:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\JStephen>
+PS C:\Users\JStephen> # 4. Install Playwright browser
+PS C:\Users\JStephen> pnpm --filter @workspace/fb-scraper exec playwright install chromium
+pnpm : The term 'pnpm' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ pnpm --filter @workspace/fb-scraper exec playwright install chromium
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (pnpm:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\JStephen>
+PS C:\Users\JStephen> # 5. Save your Facebook cookies
+PS C:\Users\JStephen> # (paste the same JSON you gave me into this file)
+PS C:\Users\JStephen> cat > artifacts/fb-scraper/fb_cookies.json << 'EOF'
+At line:1 char:45
++ cat > artifacts/fb-scraper/fb_cookies.json << 'EOF'
++                                             ~
+Missing file specification after redirection operator.
+At line:1 char:44
++ cat > artifacts/fb-scraper/fb_cookies.json << 'EOF'
++                                            ~
+The '<' operator is reserved for future use.
+At line:1 char:45
++ cat > artifacts/fb-scraper/fb_cookies.json << 'EOF'
++                                             ~
+The '<' operator is reserved for future use.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingFileSpecification
+
+PS C:\Users\JStephen> [... your cookies JSON ...]
+At line:1 char:2
++ [... your cookies JSON ...]
++  ~
+Missing type name after '['.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : MissingTypename
+
+PS C:\Users\JStephen> EOF
+EOF : The term 'EOF' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ EOF
++ ~~~
+    + CategoryInfo          : ObjectNotFound: (EOF:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\JStephen>
+PS C:\Users\JStephen> # 6. Run the scraper!
+PS C:\Users\JStephen> DATABASE_URL="your_db_url" \
+DATABASE_URL=your_db_url : The term 'DATABASE_URL=your_db_url' is not recognized as the name of a cmdlet, function,
+script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is
+correct and try again.
+At line:1 char:1
++ DATABASE_URL="your_db_url" \
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (DATABASE_URL=your_db_url:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\JStephen> OPENAI_API_KEY="sk-proj-ro4BVR...your_key" \
+OPENAI_API_KEY=sk-proj-ro4BVR...your_key : The term 'OPENAI_API_KEY=sk-proj-ro4BVR...your_key' is not recognized as
+the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was
+included, verify that the path is correct and try again.
+At line:1 char:1
++ OPENAI_API_KEY="sk-proj-ro4BVR...your_key" \
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (OPENAI_API_KEY=sk-proj-ro4BVR...your_key:String) [], CommandNotFoundExc
+   eption
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\JStephen> FB_COOKIES_PATH="./fb_cookies.json" \
+FB_COOKIES_PATH=./fb_cookies.json : The term 'FB_COOKIES_PATH=./fb_cookies.json' is not recognized as the name of a
+cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify
+that the path is correct and try again.
+At line:1 char:1
++ FB_COOKIES_PATH="./fb_cookies.json" \
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (FB_COOKIES_PATH=./fb_cookies.json:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\JStephen> PUBLIC_BASE_URL="https://your-voom-domain.com" \
+PUBLIC_BASE_URL=https://your-voom-domain.com : The term 'PUBLIC_BASE_URL=https://your-voom-domain.com' is not
+recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if
+a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ PUBLIC_BASE_URL="https://your-voom-domain.com" \
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (PUBLIC_BASE_URL...voom-domain.com:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\JStephen> pnpm --filter @workspace/fb-scraper run scrape
+pnpm : The term 'pnpm' is not recognized as the name of a cmdlet, function, script file, or operable program. Check
+the spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ pnpm --filter @workspace/fb-scraper run scrape
++ ~~~~
+    + CategoryInfo          : ObjectNotFound: (pnpm:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+PS C:\Users\JStephen>
