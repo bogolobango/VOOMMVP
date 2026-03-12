@@ -22,6 +22,10 @@ declare global {
 export function setupAuth(app: Express) {
   const PgSession = connectPgSimple(session);
 
+  if (!process.env.SESSION_SECRET) {
+    console.warn("⚠️  SESSION_SECRET not set — using random secret. Sessions will not persist across restarts.");
+  }
+
   app.use(
     session({
       store: new PgSession({
@@ -29,7 +33,7 @@ export function setupAuth(app: Express) {
         tableName: "session",
         createTableIfMissing: true,
       }),
-      secret: process.env.SESSION_SECRET || "voom-secret-key-change-in-production",
+      secret: process.env.SESSION_SECRET || require('crypto').randomBytes(32).toString('hex'),
       resave: false,
       saveUninitialized: false,
       cookie: {

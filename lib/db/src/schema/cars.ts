@@ -10,7 +10,7 @@ export const cars = pgTable("cars", {
   year: integer("year").notNull(),
   type: text("type").notNull().default("Sedan"),
   dailyRate: integer("daily_rate").notNull(),
-  currency: text("currency").notNull().default("FCFA"),
+  currency: text("currency").notNull().default("GHS"),
   location: text("location").notNull(),
   city: text("city"),
   country: text("country"),

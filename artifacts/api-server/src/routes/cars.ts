@@ -1,7 +1,17 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import rateLimit from "express-rate-limit";
 import { storage } from "../lib/storage";
+import { sanitizeObject } from "../lib/sanitize";
 
 const router: IRouter = Router();
+
+const createCarLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many car listings, please try again later." },
+});
 
 router.get("/", async (req: Request, res: Response) => {
   try {
@@ -53,10 +63,11 @@ router.get("/:id", async (req: Request, res: Response) => {
   return res.json(car);
 });
 
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", createCarLimiter, async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ message: "Not authenticated" });
-    const carData = { ...req.body, hostId: req.user.id };
+    const sanitized = sanitizeObject(req.body, ["make", "model", "description", "location", "city", "color"]);
+    const carData = { ...sanitized, hostId: req.user.id };
     const car = await storage.createCar(carData);
     await storage.updateUser(req.user.id, { isHost: true, role: "both" });
     return res.status(201).json(car);
@@ -75,7 +86,8 @@ router.put("/:id", async (req: Request, res: Response) => {
     if (!car) return res.status(404).json({ message: "Car not found" });
     if (car.hostId !== req.user.id) return res.status(403).json({ message: "Not authorized" });
 
-    const updated = await storage.updateCar(carId, req.body);
+    const sanitized = sanitizeObject(req.body, ["make", "model", "description", "location", "city", "color"]);
+    const updated = await storage.updateCar(carId, sanitized);
     return res.json(updated);
   } catch (error) {
     return res.status(400).json({ message: (error as Error).message });

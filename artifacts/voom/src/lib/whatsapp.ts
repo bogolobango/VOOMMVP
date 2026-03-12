@@ -1,4 +1,4 @@
-export const VOOM_WHATSAPP_NUMBER = "233XXXXXXXXX";
+export const VOOM_WHATSAPP_NUMBER = "19172541550";
 
 export function openWhatsApp(phoneNumber: string, message: string = "") {
   const cleaned = phoneNumber.replace(/\D/g, "");
