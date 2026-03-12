@@ -6,7 +6,8 @@ import * as z from "zod";
 import { Input, Button, Label, Card } from "@/components/ui-elements";
 import { useLogin, useRegister, useGetMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Car, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import voomLogo from "/voom-logo.png";
 import { motion, AnimatePresence } from "framer-motion";
 
 const loginSchema = z.object({
@@ -74,9 +75,7 @@ export default function AuthPage() {
       
       <Card className="w-full max-w-md p-8 relative z-10 bg-card/80 backdrop-blur-xl border border-white/20">
         <div className="flex justify-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-            <Car className="w-7 h-7 text-white" />
-          </div>
+          <img src={voomLogo} alt="Voom" className="h-10 w-auto" />
         </div>
         
         <h2 className="text-3xl font-display font-bold text-center mb-2">

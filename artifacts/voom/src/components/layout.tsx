@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { Home, Heart, Calendar, MessageCircle, User, LayoutDashboard, Car as CarIcon, LogOut } from "lucide-react";
+import voomLogo from "/voom-logo.png";
 import { useAppStore } from "@/store/use-app-store";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,11 +35,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 border-r border-border/50 bg-card fixed inset-y-0 z-40">
         <div className="p-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
-              <CarIcon className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-2xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">VOOM</span>
+          <Link href="/" className="flex items-center">
+            <img src={voomLogo} alt="Voom" className="h-8 w-auto" />
           </Link>
         </div>
         
@@ -80,11 +78,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 md:pl-64 flex flex-col min-h-screen">
         {/* Mobile Header */}
         <header className="md:hidden flex items-center justify-between p-4 bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-30">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <CarIcon className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-display font-bold">VOOM</span>
+          <Link href="/" className="flex items-center">
+            <img src={voomLogo} alt="Voom" className="h-7 w-auto" />
           </Link>
           {user && (
             <Link href="/account">
