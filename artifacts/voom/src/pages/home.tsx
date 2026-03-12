@@ -31,11 +31,11 @@ export default function Home() {
           className="absolute inset-0 bg-cover bg-center scale-110"
           style={{
             backgroundImage: `url(/hero-bg.jpeg)`,
-            filter: "blur(18px)",
+            filter: "blur(8px)",
           }}
         />
         {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/25" />
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div 
