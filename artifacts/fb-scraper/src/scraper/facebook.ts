@@ -124,8 +124,11 @@ export async function scrapeFacebookGroup(
   let context: BrowserContext | null = null;
 
   try {
+    // Use PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH if set, or fall back to bundled chromium
+    const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || undefined;
     browser = await chromium.launch({
       headless: true,
+      executablePath,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
