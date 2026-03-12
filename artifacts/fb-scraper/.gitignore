@@ -1,0 +1,19 @@
+# Environment variables
+.env
+.env.local
+
+# Facebook session cookies — NEVER commit these
+fb_cookies.json
+*.cookies.json
+
+# Downloaded images (can be large)
+public/scraped-images/
+
+# Build output
+dist/
+
+# Node modules
+node_modules/
+
+# Playwright browser binaries
+.playwright/

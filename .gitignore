@@ -47,3 +47,9 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Facebook scraper — sensitive files
+fb_cookies.json
+*.cookies.json
+artifacts/fb-scraper/public/scraped-images/
+artifacts/fb-scraper/.env

@@ -25,6 +25,8 @@ tags:
     description: Reviews
   - name: payments
     description: Payment processing
+  - name: scraper
+    description: Facebook listing scraper management (admin only)
 
 paths:
   /healthz:
@@ -666,6 +668,76 @@ paths:
               schema:
                 $ref: "#/components/schemas/PaymentResponse"
 
+  /scraper/trigger:
+    post:
+      operationId: triggerScraper
+      tags: [scraper]
+      summary: Trigger a Facebook scrape run
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                maxAgeHours:
+                  type: integer
+                  default: 48
+                  description: Maximum age of posts to collect in hours
+      responses:
+        "202":
+          description: Scraper run triggered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScraperTriggerResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+
+  /scraper/status:
+    get:
+      operationId: getScraperStatus
+      tags: [scraper]
+      summary: Get the current scraper run status
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScraperStatus"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+
+  /scraper/listings:
+    get:
+      operationId: getScrapedListings
+      tags: [scraper]
+      summary: Get recently scraped car listings
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScrapedListingsResponse"
+        "401":
+          $ref: "#/components/responses/Error"
+        "403":
+          $ref: "#/components/responses/Error"
+
 components:
   responses:
     Error:
@@ -1122,3 +1194,57 @@ components:
           type: string
           nullable: true
       required: [paymentId, amount, currency, status]
+
+    ScraperTriggerResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        maxAgeHours:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+      required: [message, maxAgeHours, startedAt]
+
+    ScraperStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [idle, running, completed, failed]
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        lastStats:
+          type: object
+          nullable: true
+          properties:
+            total:
+              type: integer
+            created:
+              type: integer
+            skipped:
+              type: integer
+            errors:
+              type: integer
+      required: [status]
+
+    ScrapedListingsResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+        listings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Car"
+      required: [count, listings]

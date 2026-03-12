@@ -1,0 +1,10 @@
+[artifact]
+name = "fb-scraper"
+description = "VOOM Facebook Listing Scraper Service"
+type = "service"
+
+[run]
+command = "pnpm --filter @workspace/fb-scraper run dev"
+
+[env]
+PORT = "3001"

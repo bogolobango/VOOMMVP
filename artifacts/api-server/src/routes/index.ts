@@ -8,6 +8,7 @@ import favoritesRouter from "./favorites";
 import messagesRouter from "./messages";
 import reviewsRouter from "./reviews";
 import paymentsRouter from "./payments";
+import scraperRouter from "./scraper";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use("/favorites", favoritesRouter);
 router.use("/messages", messagesRouter);
 router.use("/reviews", reviewsRouter);
 router.use("/payments", paymentsRouter);
+router.use("/scraper", scraperRouter);
 
 export default router;
