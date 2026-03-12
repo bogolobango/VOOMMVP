@@ -75,7 +75,7 @@ export default function AuthPage() {
       
       <Card className="w-full max-w-md p-8 relative z-10 bg-card/80 backdrop-blur-xl border border-white/20">
         <div className="flex justify-center mb-8">
-          <img src={voomLogo} alt="Voom" className="h-10 w-auto" />
+          <img src={voomLogo} alt="Voom" className="h-28 w-auto max-w-full" />
         </div>
         
         <h2 className="text-3xl font-display font-bold text-center mb-2">

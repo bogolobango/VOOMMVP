@@ -34,9 +34,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background flex flex-col md:flex-row pb-20 md:pb-0">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 border-r border-border/50 bg-card fixed inset-y-0 z-40">
-        <div className="p-6">
+        <div className="px-4 py-5">
           <Link href="/" className="flex items-center">
-            <img src={voomLogo} alt="Voom" className="h-8 w-auto" />
+            <img src={voomLogo} alt="Voom" className="h-24 w-auto max-w-full" />
           </Link>
         </div>
         
@@ -79,7 +79,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Mobile Header */}
         <header className="md:hidden flex items-center justify-between p-4 bg-background/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-30">
           <Link href="/" className="flex items-center">
-            <img src={voomLogo} alt="Voom" className="h-7 w-auto" />
+            <img src={voomLogo} alt="Voom" className="h-20 w-auto max-w-[160px]" />
           </Link>
           {user && (
             <Link href="/account">
