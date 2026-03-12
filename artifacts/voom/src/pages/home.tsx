@@ -13,15 +13,18 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
 
-  const { data: cars, isLoading } = useGetCars({
-    query: {
-      queryKey: ["/api/cars", category, search],
+  const { data: cars, isLoading } = useGetCars(
+    {
+      available: true,
+      ...(category !== "All" ? { category } : {}),
+      ...(search ? { searchQuery: search } : {}),
+    },
+    {
+      query: {
+        queryKey: ["/api/cars", { available: true, category, search }],
+      },
     }
-  }, {
-    request: {
-      url: `/api/cars?available=true${category !== 'All' ? `&category=${category}` : ''}${search ? `&searchQuery=${search}` : ''}` as any
-    }
-  });
+  );
 
   return (
     <Layout>
@@ -221,7 +224,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-        ) : cars?.length === 0 ? (
+        ) : !cars || cars.length === 0 ? (
           <div className="text-center py-24 bg-card rounded-3xl border border-border border-dashed">
             <CarIcon className="w-16 h-16 mx-auto text-muted-foreground opacity-50 mb-4" />
             <h3 className="text-xl font-bold mb-2">No cars found</h3>

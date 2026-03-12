@@ -29,6 +29,7 @@ import type { RawPost } from "../scraper/facebook.js";
 import { parseCarPost } from "../parser/llm.js";
 import { downloadPostImages } from "../parser/images.js";
 import { publishListing } from "./publish.js";
+import { identifyCarFromImages, needsVisionEnrichment } from "../parser/vision.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -122,6 +123,32 @@ async function ingestSinglePost(post: RawPost): Promise<IngestionResult> {
         `[pipeline] Post ${post.postId} is not a valid car listing — skipping.`
       );
       return { postId: post.postId, status: "skipped" };
+    }
+
+    // ── Step 2b: Vision enrichment when text parsing is insufficient ──────
+    if (needsVisionEnrichment(parsed) && post.imageUrls.length > 0) {
+      console.log(
+        `[pipeline] Text parsing returned unknown make/model for ${post.postId} — trying vision identification...`
+      );
+      const vision = await identifyCarFromImages(post.imageUrls);
+      if (vision && vision.confidence !== "low") {
+        console.log(
+          `[pipeline] Vision identified: ${vision.year ?? "?"} ${vision.make} ${vision.model} ` +
+            `(confidence: ${vision.confidence})`
+        );
+        parsed.make = vision.make;
+        parsed.model = vision.model;
+        if (vision.year) parsed.year = vision.year;
+        parsed.type = vision.type;
+        if (vision.color) parsed.color = vision.color;
+        if (vision.description && parsed.description.length < 100) {
+          parsed.description = vision.description;
+        }
+      } else {
+        console.log(
+          `[pipeline] Vision identification failed or low confidence — keeping text-parsed data.`
+        );
+      }
     }
 
     // ── Step 3: Download and persist images ───────────────────────────────

@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import rateLimit from "express-rate-limit";
 import { storage } from "../lib/storage";
 import { sanitizeObject } from "../lib/sanitize";
+import OpenAI from "openai";
 
 const router: IRouter = Router();
 
@@ -108,6 +109,102 @@ router.delete("/:id", async (req: Request, res: Response) => {
     return res.json({ success: true });
   } catch (error) {
     return res.status(400).json({ message: (error as Error).message });
+  }
+});
+
+/**
+ * POST /api/cars/:id/enrich
+ * Uses GPT-4o vision to identify car make/model/type/color from its images
+ * and patches any blank or unknown fields. Open to admin users only.
+ */
+router.post("/:id/enrich", async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: "Not authenticated" });
+    if (req.user.role !== "admin") return res.status(403).json({ message: "Admin access required" });
+
+    const carId = parseInt(req.params.id);
+    if (isNaN(carId)) return res.status(400).json({ message: "Invalid car ID" });
+
+    const car = await storage.getCar(carId);
+    if (!car) return res.status(404).json({ message: "Car not found" });
+
+    const imageUrls: string[] = [
+      ...(Array.isArray(car.images) ? car.images : []),
+      ...(car.imageUrl ? [car.imageUrl] : []),
+    ].filter(Boolean).slice(0, 3);
+
+    if (!imageUrls.length) {
+      return res.status(422).json({ message: "Car has no images to analyse" });
+    }
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ message: "OpenAI API key not configured" });
+    }
+
+    const client = new OpenAI({ apiKey });
+
+    const imageContent = imageUrls.map((url) => ({
+      type: "image_url" as const,
+      image_url: { url, detail: "auto" as const },
+    }));
+
+    const response = await client.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert car identifier. Given car photos, return ONLY JSON:
+{"make":string,"model":string,"year":number|null,"type":"Sedan"|"SUV"|"Hatchback"|"Pickup"|"Van"|"Truck"|"Coupe"|"Convertible"|"Wagon"|"Minivan"|"Other","color":string|null,"confidence":"high"|"medium"|"low","description":string}`,
+        },
+        {
+          role: "user",
+          content: [
+            ...imageContent,
+            { type: "text" as const, text: "Identify this car." },
+          ],
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 300,
+      response_format: { type: "json_object" },
+    });
+
+    const raw = response.choices[0]?.message?.content;
+    if (!raw) return res.status(502).json({ message: "Vision API returned empty response" });
+
+    const identified = JSON.parse(raw);
+
+    const UNKNOWNS = new Set(["unknown", "car", "vehicle", "auto", "automobile", ""]);
+    const updates: Record<string, unknown> = {};
+
+    if (identified.make && !UNKNOWNS.has((car.make ?? "").toLowerCase())) {
+      // only overwrite if car's make is actually unknown/blank
+    } else if (identified.make && !UNKNOWNS.has(identified.make.toLowerCase())) {
+      updates.make = identified.make;
+    }
+
+    if (UNKNOWNS.has((car.model ?? "").toLowerCase()) && identified.model && !UNKNOWNS.has(identified.model.toLowerCase())) {
+      updates.model = identified.model;
+    }
+    if (!car.year && identified.year) updates.year = identified.year;
+    if (!car.color && identified.color) updates.color = identified.color;
+    if ((!car.description || car.description.length < 50) && identified.description) {
+      updates.description = identified.description;
+    }
+
+    const updated = Object.keys(updates).length > 0
+      ? await storage.updateCar(carId, updates)
+      : car;
+
+    return res.json({
+      identified,
+      updated,
+      fieldsPatched: Object.keys(updates),
+    });
+  } catch (error) {
+    console.error("[cars/enrich] Error:", error);
+    return res.status(500).json({ message: (error as Error).message });
   }
 });
 
