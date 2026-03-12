@@ -28,6 +28,20 @@ export const cars = pgTable("cars", {
   transmission: text("transmission"),
   fuelType: text("fuel_type"),
   seats: integer("seats"),
+  /**
+   * Stores the originating Facebook post ID for listings auto-imported by the
+   * fb-scraper service. Used for idempotency — prevents duplicate listings
+   * across multiple scrape runs. Null for manually created listings.
+   */
+  fbPostId: text("fb_post_id").unique(),
+  /**
+   * Stores the originating Facebook seller profile URL for imported listings.
+   */
+  fbSellerProfileUrl: text("fb_seller_profile_url"),
+  /**
+   * Source of the listing: "manual" (default) or "facebook_scraper".
+   */
+  source: text("source").default("manual"),
 });
 
 export const insertCarSchema = createInsertSchema(cars).omit({
