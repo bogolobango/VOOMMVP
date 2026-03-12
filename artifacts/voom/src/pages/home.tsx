@@ -25,8 +25,17 @@ export default function Home() {
   return (
     <Layout>
       {/* Hero Section */}
-      <div className="relative pt-8 pb-12 px-4 sm:px-6 lg:px-8 bg-card overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5" />
+      <div className="relative pt-8 pb-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        {/* Blurred background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center scale-110"
+          style={{
+            backgroundImage: `url(/hero-bg.jpeg)`,
+            filter: "blur(18px)",
+          }}
+        />
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-black/40" />
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div 
@@ -34,10 +43,10 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               className="text-center lg:text-left"
             >
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold tracking-tight text-foreground mb-6 leading-[1.1]">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold tracking-tight text-white mb-6 leading-[1.1]">
                 Find the perfect <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">drive</span> for your journey.
               </h1>
-              <p className="text-lg text-muted-foreground mb-8 max-w-lg mx-auto lg:mx-0">
+              <p className="text-lg text-white/80 mb-8 max-w-lg mx-auto lg:mx-0">
                 Premium peer-to-peer car rental across West Africa. Verified hosts, insured trips, and unforgettable experiences.
               </p>
               
