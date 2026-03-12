@@ -14,7 +14,7 @@ export const bookings = pgTable("bookings", {
   totalAmount: integer("total_amount").notNull(),
   platformFee: integer("platform_fee").default(0),
   hostPayout: integer("host_payout").default(0),
-  currency: text("currency").notNull().default("FCFA"),
+  currency: text("currency").notNull().default("GHS"),
   paymentMethod: text("payment_method"),
   paymentId: text("payment_id"),
   status: text("status").notNull().default("pending"),

@@ -1,8 +1,19 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import rateLimit from "express-rate-limit";
 import { storage } from "../lib/storage";
 import { hashPassword, verifyPassword } from "../lib/auth";
+import { sanitizeInput } from "../lib/sanitize";
 
 const router: IRouter = Router();
+
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many attempts, please try again later." },
+});
+router.use(authLimiter);
 
 router.post("/register", async (req: Request, res: Response) => {
   try {
@@ -23,11 +34,14 @@ router.post("/register", async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Username already taken" });
     }
 
+    const cleanFullName = sanitizeInput(fullName);
+    const cleanUsername = sanitizeInput(username);
+
     const hashedPassword = await hashPassword(password);
     const user = await storage.createUser({
-      username,
+      username: cleanUsername,
       password: hashedPassword,
-      fullName,
+      fullName: cleanFullName,
       phoneNumber,
       role: "renter",
       isHost: false,
