@@ -11,7 +11,8 @@ import { readFileSync, existsSync } from "fs";
 import path from "path";
 
 export const FB_GROUP_URL =
-  "https://www.facebook.com/groups/cardealersghana/buy_sell_discussion";
+  process.env.FB_GROUP_URL ??
+  "https://www.facebook.com/groups/cardealersghana/";
 
 export interface RawPost {
   /** Facebook post ID extracted from the post URL */
@@ -55,7 +56,38 @@ function loadSessionCookies(): object[] | null {
 
   try {
     const raw = readFileSync(cookiePath, "utf-8");
-    return JSON.parse(raw) as object[];
+    const rawCookies = JSON.parse(raw) as Record<string, unknown>[];
+
+    // Normalize browser-extension cookie format (e.g. EditThisCookie / Cookie-Editor)
+    // to Playwright's expected format.
+    const playwrightCookies = rawCookies.map((c) => {
+      const sameSiteRaw = (c.sameSite as string | undefined) ?? "";
+      const sameSiteMap: Record<string, "Strict" | "Lax" | "None"> = {
+        strict: "Strict",
+        lax: "Lax",
+        none: "None",
+        no_restriction: "None",
+        unspecified: "Lax",
+      };
+      const sameSite: "Strict" | "Lax" | "None" =
+        (["Strict", "Lax", "None"].includes(sameSiteRaw)
+          ? (sameSiteRaw as "Strict" | "Lax" | "None")
+          : sameSiteMap[sameSiteRaw.toLowerCase()] ?? "Lax");
+
+      return {
+        name: c.name as string,
+        value: c.value as string,
+        domain: c.domain as string,
+        path: (c.path as string | undefined) ?? "/",
+        // browser extensions use `expirationDate`; Playwright uses `expires`
+        expires: (c.expires as number | undefined) ?? (c.expirationDate as number | undefined) ?? -1,
+        httpOnly: (c.httpOnly as boolean | undefined) ?? false,
+        secure: (c.secure as boolean | undefined) ?? false,
+        sameSite,
+      };
+    });
+
+    return playwrightCookies;
   } catch (err) {
     console.error("[scraper] Failed to parse cookies file:", err);
     return null;
@@ -165,8 +197,34 @@ export async function scrapeFacebookGroup(
     console.log(`[scraper] Navigating to ${FB_GROUP_URL}`);
     await page.goto(FB_GROUP_URL, { waitUntil: "domcontentloaded", timeout: 60_000 });
 
+    // Wait for Facebook's SPA to hydrate and render the feed
+    await page.waitForTimeout(4000);
+
     // Dismiss any login/cookie consent dialogs
     await dismissOverlays(page);
+
+    // Verify we landed on the group page, not a login/checkpoint page
+    const currentUrl = page.url();
+    if (
+      currentUrl.includes("login") ||
+      currentUrl.includes("checkpoint") ||
+      currentUrl.includes("recover")
+    ) {
+      console.warn(
+        `[scraper] Redirected to auth page: ${currentUrl}. ` +
+          "Session cookies may have expired — re-export fresh cookies from your browser."
+      );
+      return [];
+    }
+    console.log(`[scraper] Confirmed on page: ${currentUrl}`);
+
+    // Wait for the first article/post to appear in the feed (up to 15s)
+    try {
+      await page.waitForSelector('[role="article"]', { timeout: 15_000 });
+      console.log("[scraper] Feed articles detected — starting extraction.");
+    } catch {
+      console.warn("[scraper] No articles visible after 15s. The group feed may be empty or require login.");
+    }
 
     const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
     const posts: RawPost[] = [];
@@ -179,7 +237,20 @@ export async function scrapeFacebookGroup(
     );
 
     while (!reachedCutoff && scrollAttempts < maxScrollAttempts) {
-      const newPosts = await extractVisiblePosts(page, cutoff);
+      // If Facebook navigated away mid-session, stop gracefully
+      const pageUrl = page.url();
+      if (pageUrl.includes("login") || pageUrl.includes("checkpoint")) {
+        console.warn(`[scraper] Session interrupted — redirected to ${pageUrl}. Stopping.`);
+        break;
+      }
+
+      let newPosts: RawPost[] = [];
+      try {
+        newPosts = await extractVisiblePosts(page, cutoff);
+      } catch (extractErr) {
+        console.warn("[scraper] Could not extract posts this scroll (page may have changed):", extractErr);
+        break;
+      }
 
       for (const post of newPosts) {
         const postDate = new Date(post.postedAt);
@@ -196,11 +267,18 @@ export async function scrapeFacebookGroup(
       if (reachedCutoff) break;
 
       // Scroll down to load more posts
-      const prevHeight = await page.evaluate(() => document.body.scrollHeight);
-      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-      await page.waitForTimeout(2500 + Math.random() * 1000);
+      let prevHeight = 0;
+      let newHeight = 0;
+      try {
+        prevHeight = await page.evaluate(() => document.body.scrollHeight);
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(2500 + Math.random() * 1000);
+        newHeight = await page.evaluate(() => document.body.scrollHeight);
+      } catch (scrollErr) {
+        console.warn("[scraper] Scroll interrupted (likely a page navigation):", scrollErr);
+        break;
+      }
 
-      const newHeight = await page.evaluate(() => document.body.scrollHeight);
       if (newHeight === prevHeight) {
         console.log("[scraper] No more content to load.");
         break;
