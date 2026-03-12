@@ -113,7 +113,7 @@ async function ingestSinglePost(post: RawPost): Promise<IngestionResult> {
 
     // ── Step 2: Parse car data via LLM ────────────────────────────────────
     console.log(
-      `[pipeline] Parsing post ${post.postId} (seller: "${post.sellerName}")...`
+      `[pipeline] Parsing post ${post.postId} (seller: "${post.sellerName}") | ${post.text.length} chars | ${post.imageUrls.length} images`
     );
     const parsed = await parseCarPost(post);
 

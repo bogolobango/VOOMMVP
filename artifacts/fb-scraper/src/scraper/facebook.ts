@@ -194,6 +194,24 @@ export async function scrapeFacebookGroup(
       (window as any).chrome = { runtime: {} };
     });
 
+    // Warm up the session: land on Facebook homepage first so the session
+    // is established from this IP before we request a group page.
+    console.log("[scraper] Warming session on facebook.com...");
+    await page.goto("https://www.facebook.com/", { waitUntil: "domcontentloaded", timeout: 60_000 });
+    await page.waitForTimeout(3000 + Math.random() * 2000);
+
+    // Check we're logged in on the homepage
+    if (page.url().includes("login")) {
+      console.warn("[scraper] Not logged in on homepage — cookies invalid. Re-export fresh cookies.");
+      return [];
+    }
+
+    // Navigate to the Groups hub to further establish session context
+    console.log("[scraper] Visiting /groups/ hub...");
+    await page.goto("https://www.facebook.com/groups/", { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForTimeout(2000 + Math.random() * 1500);
+
+    // Now navigate to the target group
     console.log(`[scraper] Navigating to ${FB_GROUP_URL}`);
     await page.goto(FB_GROUP_URL, { waitUntil: "domcontentloaded", timeout: 60_000 });
 
@@ -266,13 +284,26 @@ export async function scrapeFacebookGroup(
 
       if (reachedCutoff) break;
 
-      // Scroll down to load more posts
+      // Expand "See more" on any truncated posts before scrolling
+      try {
+        const seeMoreBtns = page.locator('div[role="button"]:has-text("See more"), span[role="button"]:has-text("See more")');
+        const count = await seeMoreBtns.count();
+        for (let i = 0; i < Math.min(count, 5); i++) {
+          try { await seeMoreBtns.nth(i).click({ timeout: 1000 }); } catch { /* ok */ }
+        }
+      } catch { /* ok — no See more buttons */ }
+
+      // Scroll down in a human-like fashion (two smaller steps)
       let prevHeight = 0;
       let newHeight = 0;
       try {
         prevHeight = await page.evaluate(() => document.body.scrollHeight);
+        // Scroll half-way, pause, then scroll to bottom
+        await page.evaluate(() => window.scrollBy(0, window.innerHeight * 1.5));
+        await page.waitForTimeout(1500 + Math.random() * 800);
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        await page.waitForTimeout(2500 + Math.random() * 1000);
+        // Longer human-like wait (4-7 seconds)
+        await page.waitForTimeout(4000 + Math.random() * 3000);
         newHeight = await page.evaluate(() => document.body.scrollHeight);
       } catch (scrollErr) {
         console.warn("[scraper] Scroll interrupted (likely a page navigation):", scrollErr);
@@ -347,10 +378,17 @@ async function extractVisiblePosts(
         rawLocation: string | null;
       }> = [];
 
-      // Facebook renders feed items as role="article" or data-pagelet containing posts
-      const articles = document.querySelectorAll<HTMLElement>(
-        '[role="article"]'
+      // Facebook renders feed items as role="article".
+      // Comments are NESTED articles (inside another article), so we only
+      // want top-level articles — those whose closest article ancestor is themselves.
+      const allArticles = Array.from(
+        document.querySelectorAll<HTMLElement>('[role="article"]')
       );
+      const articles = allArticles.filter((el) => {
+        // A top-level post has no parent article above it
+        const parent = el.parentElement?.closest('[role="article"]');
+        return !parent;
+      });
 
       articles.forEach((article) => {
         try {
@@ -392,12 +430,17 @@ async function extractVisiblePosts(
             Math.random().toString(36).slice(2);
 
           // ── Seller ─────────────────────────────────────────────────────────
+          // Try progressively broader selectors to find the seller's name/link
           const sellerLink = article.querySelector<HTMLAnchorElement>(
             'a[href*="/user/"], a[href*="facebook.com/profile"],' +
-              ' h2 a, h3 a, strong a'
+              ' h2 a, h3 a, strong a,' +
+              ' a[href*="facebook.com/"][role="link"]'
           );
+          // If no linked name, try the first bold/header element in the article
           const sellerName =
-            sellerLink?.textContent?.trim() ?? "Unknown Seller";
+            sellerLink?.textContent?.trim() ||
+            article.querySelector<HTMLElement>("strong, h2, h3, b")?.textContent?.trim() ||
+            "Unknown Seller";
           const sellerProfileUrl = sellerLink?.href ?? "";
 
           // Profile picture
@@ -408,11 +451,45 @@ async function extractVisiblePosts(
           const sellerProfilePicture = avatarImg?.src ?? null;
 
           // ── Post Text ──────────────────────────────────────────────────────
-          const textContainer = article.querySelector<HTMLElement>(
-            '[data-ad-comet-preview="message"], [data-testid="post_message"],' +
-              ' [dir="auto"]'
+          // Facebook's DOM evolves rapidly — try multiple selector strategies
+          // in order of preference, falling back to full article text.
+          let text = "";
+
+          // Strategy 1: dedicated message/preview containers (older React builds)
+          const msgEl = article.querySelector<HTMLElement>(
+            '[data-ad-comet-preview="message"], [data-testid="post_message"]'
           );
-          const text = textContainer?.innerText?.trim() ?? "";
+          if (msgEl?.innerText?.trim()) {
+            text = msgEl.innerText.trim();
+          }
+
+          // Strategy 2: first [dir="auto"] element with substantial text
+          if (!text) {
+            const dirEls = article.querySelectorAll<HTMLElement>('[dir="auto"]');
+            for (const el of Array.from(dirEls)) {
+              const t = el.innerText?.trim() ?? "";
+              if (t.length > 30) { text = t; break; }
+            }
+          }
+
+          // Strategy 3: collect all text from the article, skip known noise nodes
+          if (!text) {
+            const skipTags = new Set(["BUTTON", "A", "TIME", "ABBR", "SVG", "IMG"]);
+            const skipTexts = ["See more", "See less", "Like", "Comment", "Share", "Reply", "Most relevant"];
+            const chunks: string[] = [];
+            article.querySelectorAll<HTMLElement>("span, p").forEach((el) => {
+              const raw = el.innerText?.trim() ?? "";
+              if (raw.length < 5) return;
+              if (skipTags.has(el.tagName)) return;
+              if (skipTexts.some((s) => raw.includes(s))) return;
+              // Skip if it's a descendant of a button/link
+              if (el.closest("button, a")) return;
+              chunks.push(raw);
+            });
+            // De-duplicate and join
+            const seen = new Set<string>();
+            text = chunks.filter((c) => { if (seen.has(c)) return false; seen.add(c); return true; }).join("\n");
+          }
 
           // ── Images ─────────────────────────────────────────────────────────
           const imgEls = article.querySelectorAll<HTMLImageElement>(
