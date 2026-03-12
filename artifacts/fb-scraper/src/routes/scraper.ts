@@ -4,10 +4,13 @@
  * Exposes HTTP endpoints so the VOOM backend (or an admin dashboard)
  * can trigger and monitor the Facebook scraper without SSH access.
  *
- * Routes:
- *   POST /scraper/trigger        — Start a scrape run (async)
- *   GET  /scraper/status         — Get the status of the last/current run
- *   GET  /scraper/listings        — List recently scraped car IDs
+ * All requests are forwarded to the fb-scraper microservice.
+ * Requires the caller to be authenticated as an admin user.
+ *
+ * Routes (mounted at /scraper within the fb-scraper service):
+ *   POST /scraper/trigger    — Start a scrape run (async, returns 202)
+ *   GET  /scraper/status     — Get the status of the last/current run
+ *   GET  /scraper/listings   — List recently auto-published car listings
  */
 
 import { Router, type Request, type Response } from "express";
@@ -22,6 +25,7 @@ interface RunState {
   status: "idle" | "running" | "completed" | "failed";
   startedAt: string | null;
   completedAt: string | null;
+  durationSeconds: number | null;
   lastStats: PipelineStats | null;
   error: string | null;
 }
@@ -30,6 +34,7 @@ const runState: RunState = {
   status: "idle",
   startedAt: null,
   completedAt: null,
+  durationSeconds: null,
   lastStats: null,
   error: null,
 };
@@ -53,36 +58,42 @@ router.post("/trigger", async (req: Request, res: Response) => {
   }
 
   const maxAgeHours = req.body?.maxAgeHours
-    ? parseInt(req.body.maxAgeHours, 10)
+    ? parseInt(String(req.body.maxAgeHours), 10)
     : 48;
 
   // Respond immediately — run is async
   res.status(202).json({
-    message: "Scraper run triggered.",
+    message: "Scraper run triggered. Listings will be auto-published as they are processed.",
     maxAgeHours,
     startedAt: new Date().toISOString(),
   });
 
   // Run in background
+  const startMs = Date.now();
   runState.status = "running";
   runState.startedAt = new Date().toISOString();
   runState.completedAt = null;
+  runState.durationSeconds = null;
   runState.error = null;
+  runState.lastStats = null;
 
   runScraperPipeline({ maxAgeHours })
     .then((stats) => {
       runState.status = "completed";
       runState.completedAt = new Date().toISOString();
+      runState.durationSeconds = Math.round((Date.now() - startMs) / 1000);
       runState.lastStats = stats;
       console.log(
-        `[routes] Triggered run complete — created: ${stats.created}, skipped: ${stats.skipped}`
+        `[routes] ✔ Triggered run complete in ${runState.durationSeconds}s — ` +
+          `created: ${stats.created}, skipped: ${stats.skipped}, errors: ${stats.errors}`
       );
     })
     .catch((err) => {
       runState.status = "failed";
       runState.completedAt = new Date().toISOString();
+      runState.durationSeconds = Math.round((Date.now() - startMs) / 1000);
       runState.error = (err as Error).message ?? String(err);
-      console.error("[routes] Triggered run failed:", runState.error);
+      console.error("[routes] ✖ Triggered run failed:", runState.error);
     });
 });
 
@@ -98,25 +109,31 @@ router.get("/listings", async (_req: Request, res: Response) => {
   try {
     const { db } = await import("@workspace/db");
     const { cars } = await import("@workspace/db");
-    const { desc, ilike } = await import("drizzle-orm");
+    const { eq, desc } = await import("drizzle-orm");
 
-    // Return the most recent scraped listings (those with fb_post_id marker)
+    // Return the most recent auto-published listings (source = "facebook_scraper")
     const scraped = await db
       .select({
         id: cars.id,
         make: cars.make,
         model: cars.model,
         year: cars.year,
+        type: cars.type,
         location: cars.location,
+        city: cars.city,
         dailyRate: cars.dailyRate,
         currency: cars.currency,
         imageUrl: cars.imageUrl,
+        available: cars.available,
+        status: cars.status,
+        fbPostId: cars.fbPostId,
+        fbSellerProfileUrl: cars.fbSellerProfileUrl,
         createdAt: cars.createdAt,
       })
       .from(cars)
-      .where(ilike(cars.description, "%[fb_post_id:%]%"))
+      .where(eq(cars.source, "facebook_scraper"))
       .orderBy(desc(cars.createdAt))
-      .limit(50);
+      .limit(100);
 
     return res.json({ count: scraped.length, listings: scraped });
   } catch (err) {

@@ -1,21 +1,34 @@
 /**
  * Database Ingestion Pipeline
  *
- * Orchestrates the full flow from a raw Facebook post to a persisted
- * car listing in the VOOM database:
+ * Orchestrates the full end-to-end flow from a raw Facebook post to a
+ * live, reservable car listing in the VOOM app:
  *
- *   RawPost → parseCarPost (LLM) → downloadPostImages → upsertHost → createCar
+ *   RawPost
+ *     → parseCarPost (LLM)          — structured car fields
+ *     → downloadPostImages           — persistent image URLs
+ *     → upsertHost                   — create/find the seller as a VOOM host user
+ *     → publishListing               — insert into `cars` table via storage layer
  *
- * Idempotency is enforced via the `fb_post_id` column on the cars table.
- * Posts already ingested are silently skipped.
+ * Idempotency is enforced via the dedicated `fb_post_id` column on the cars
+ * table (unique constraint). Re-running the scraper for the same post is a
+ * safe no-op — the existing listing is returned and counted as "skipped".
+ *
+ * Every listing is created with:
+ *   available = true
+ *   status    = "active"
+ *   source    = "facebook_scraper"
+ *
+ * This makes it immediately visible and bookable on the VOOM frontend.
  */
 
 import { db } from "@workspace/db";
 import { users, cars } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { RawPost } from "../scraper/facebook.js";
 import { parseCarPost } from "../parser/llm.js";
 import { downloadPostImages } from "../parser/images.js";
+import { publishListing } from "./publish.js";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -24,6 +37,9 @@ export interface IngestionResult {
   status: "created" | "skipped" | "error";
   carId?: number;
   hostId?: number;
+  make?: string;
+  model?: string;
+  year?: number;
   error?: string;
 }
 
@@ -60,12 +76,13 @@ export async function ingestPosts(posts: RawPost[]): Promise<PipelineStats> {
     else if (result.status === "skipped") stats.skipped++;
     else stats.errors++;
 
-    // Brief pause between posts to respect rate limits
-    await sleep(300);
+    // Brief pause between posts to avoid hammering the LLM API
+    await sleep(400);
   }
 
   console.log(
-    `[pipeline] Ingestion complete — created: ${stats.created}, skipped: ${stats.skipped}, errors: ${stats.errors}`
+    `[pipeline] Ingestion complete — ` +
+      `created: ${stats.created}, skipped: ${stats.skipped}, errors: ${stats.errors}`
   );
 
   return stats;
@@ -76,19 +93,34 @@ export async function ingestPosts(posts: RawPost[]): Promise<PipelineStats> {
  */
 async function ingestSinglePost(post: RawPost): Promise<IngestionResult> {
   try {
-    // ── Step 1: Idempotency check ──────────────────────────────────────────
+    // ── Step 1: Idempotency check via fb_post_id column ───────────────────
     const existing = await findExistingListing(post.postId);
     if (existing) {
-      console.log(`[pipeline] Post ${post.postId} already ingested (carId: ${existing.id}) — skipping.`);
-      return { postId: post.postId, status: "skipped", carId: existing.id };
+      console.log(
+        `[pipeline] Post ${post.postId} already ingested ` +
+          `(carId: ${existing.id}, ${existing.year} ${existing.make} ${existing.model}) — skipping.`
+      );
+      return {
+        postId: post.postId,
+        status: "skipped",
+        carId: existing.id,
+        hostId: existing.hostId,
+        make: existing.make,
+        model: existing.model,
+        year: existing.year,
+      };
     }
 
     // ── Step 2: Parse car data via LLM ────────────────────────────────────
-    console.log(`[pipeline] Parsing post ${post.postId} (seller: ${post.sellerName})...`);
+    console.log(
+      `[pipeline] Parsing post ${post.postId} (seller: "${post.sellerName}")...`
+    );
     const parsed = await parseCarPost(post);
 
     if (!parsed) {
-      console.log(`[pipeline] Post ${post.postId} is not a valid car listing — skipping.`);
+      console.log(
+        `[pipeline] Post ${post.postId} is not a valid car listing — skipping.`
+      );
       return { postId: post.postId, status: "skipped" };
     }
 
@@ -96,53 +128,33 @@ async function ingestSinglePost(post: RawPost): Promise<IngestionResult> {
     let imageUrls: string[] = [];
     if (post.imageUrls.length > 0) {
       console.log(
-        `[pipeline] Downloading ${post.imageUrls.length} images for post ${post.postId}...`
+        `[pipeline] Downloading ${post.imageUrls.length} image(s) for post ${post.postId}...`
       );
       imageUrls = await downloadPostImages(post.imageUrls, post.postId);
+      console.log(
+        `[pipeline] Downloaded ${imageUrls.length} image(s) successfully.`
+      );
     }
 
-    // ── Step 4: Upsert the Facebook seller as a host user ─────────────────
+    // ── Step 4: Upsert the Facebook seller as a VOOM host user ───────────
     const host = await upsertHost(post);
     console.log(
-      `[pipeline] Host resolved — userId: ${host.id}, username: ${host.username}`
+      `[pipeline] Host resolved — userId: ${host.id}, username: "${host.username}"`
     );
 
-    // ── Step 5: Create the car listing ────────────────────────────────────
-    const [car] = await db
-      .insert(cars)
-      .values({
-        hostId: host.id,
-        make: parsed.make,
-        model: parsed.model,
-        year: parsed.year,
-        type: parsed.type,
-        dailyRate: parsed.dailyRate,
-        currency: parsed.currency,
-        location: parsed.location,
-        city: parsed.city ?? undefined,
-        country: parsed.country,
-        description: parsed.description,
-        imageUrl: imageUrls[0] ?? null,
-        images: imageUrls.length > 0 ? imageUrls : undefined,
-        color: parsed.color ?? undefined,
-        transmission: parsed.transmission ?? undefined,
-        fuelType: parsed.fuelType ?? undefined,
-        seats: parsed.seats ?? undefined,
-        available: true,
-        status: "active",
-        // Store the Facebook post ID in the description metadata for idempotency
-        // (a dedicated column is added via migration — see below)
-      })
-      .returning();
-
-    // Persist the fb_post_id for future idempotency checks
-    await db
-      .update(cars)
-      .set({ description: `${parsed.description}\n\n[fb_post_id:${post.postId}]` })
-      .where(eq(cars.id, car.id));
+    // ── Step 5: Publish the listing to the VOOM app ───────────────────────
+    const car = await publishListing({
+      host,
+      parsed,
+      imageUrls,
+      fbPostId: post.postId,
+      fbSellerProfileUrl: post.sellerProfileUrl,
+    });
 
     console.log(
-      `[pipeline] Created car listing — carId: ${car.id}, ${parsed.year} ${parsed.make} ${parsed.model}`
+      `[pipeline] ✔ Published listing — carId: ${car.id}, ` +
+        `${car.year} ${car.make} ${car.model}, ` +
+        `GHS ${car.dailyRate}/day, ${car.location}`
     );
 
     return {
@@ -150,10 +162,13 @@ async function ingestSinglePost(post: RawPost): Promise<IngestionResult> {
       status: "created",
       carId: car.id,
       hostId: host.id,
+      make: car.make,
+      model: car.model,
+      year: car.year,
     };
   } catch (err) {
     const message = (err as Error).message ?? String(err);
-    console.error(`[pipeline] Error ingesting post ${post.postId}:`, message);
+    console.error(`[pipeline] ✖ Error ingesting post ${post.postId}:`, message);
     return { postId: post.postId, status: "error", error: message };
   }
 }
@@ -161,8 +176,10 @@ async function ingestSinglePost(post: RawPost): Promise<IngestionResult> {
 // ── Host upsert ───────────────────────────────────────────────────────────────
 
 /**
- * Find or create a user account for the Facebook seller.
+ * Find or create a VOOM user account for the Facebook seller.
  * Uses a deterministic username derived from the seller's profile URL or name.
+ * The account is created with isHost: true so their listings are immediately
+ * visible in the host dashboard.
  */
 async function upsertHost(
   post: RawPost
@@ -177,12 +194,13 @@ async function upsertHost(
 
   if (existing) return existing;
 
-  // Create a new host account for this Facebook seller
+  // Create a new managed host account for this Facebook seller
   const [newUser] = await db
     .insert(users)
     .values({
       username,
-      // Placeholder password — this account is managed by the scraper, not a human
+      // Placeholder password — this account is managed by the scraper.
+      // The seller can claim it later via a "claim your listing" flow.
       password: `fb_managed_${randomHex(16)}`,
       fullName: post.sellerName,
       profilePicture: post.sellerProfilePicture ?? undefined,
@@ -193,6 +211,10 @@ async function upsertHost(
     })
     .returning();
 
+  console.log(
+    `[pipeline] Created new host user — userId: ${newUser.id}, username: "${newUser.username}"`
+  );
+
   return newUser;
 }
 
@@ -200,17 +222,15 @@ async function upsertHost(
 
 /**
  * Check if a car listing for this Facebook post ID already exists.
- * We embed the post ID in the description field as a lightweight marker.
+ * Uses the dedicated `fb_post_id` column with a unique constraint.
  */
 async function findExistingListing(
   postId: string
 ): Promise<typeof cars.$inferSelect | null> {
-  // Use a raw SQL LIKE query to search the description field
-  const { ilike } = await import("drizzle-orm");
   const [found] = await db
     .select()
     .from(cars)
-    .where(ilike(cars.description, `%[fb_post_id:${postId}]%`));
+    .where(eq(cars.fbPostId, postId));
 
   return found ?? null;
 }
