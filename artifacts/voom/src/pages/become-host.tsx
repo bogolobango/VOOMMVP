@@ -5,6 +5,7 @@ import { useCreateCar } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
 import { ArrowRight, ChevronLeft, Car } from "lucide-react";
 import { useAppStore } from "@/store/use-app-store";
+import { GHANA_CITIES } from "@/lib/utils";
 
 export default function BecomeHost() {
   const [step, setStep] = useState(1);
@@ -99,8 +100,17 @@ export default function BecomeHost() {
               
               <div className="space-y-6">
                 <div>
-                  <Label>Pickup Location (City or Area)</Label>
-                  <Input placeholder="e.g. Accra, East Legon" value={locationStr} onChange={e => setLocationStr(e.target.value)} />
+                  <Label>Pickup City</Label>
+                  <select
+                    className="flex h-12 w-full rounded-xl border-2 border-border bg-background px-4 py-2 text-base focus-visible:border-primary focus-visible:outline-none"
+                    value={locationStr}
+                    onChange={e => setLocationStr(e.target.value)}
+                  >
+                    <option value="">Select a city...</option>
+                    {GHANA_CITIES.map(city => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <Label>Daily Rate (GHS ₵)</Label>

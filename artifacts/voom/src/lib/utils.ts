@@ -5,11 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export type CurrencyType = "FCFA" | "GHS" | "USD";
+export type CurrencyType = "GHS" | "USD";
 
 const CONVERSION_RATES: Record<CurrencyType, number> = {
   "GHS": 1,
-  "FCFA": 37.5,
   "USD": 0.065,
 };
 
@@ -29,12 +28,26 @@ export function formatCurrency(amount: number, currency: string = "GHS"): string
     case "USD":
       return `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     case "GHS":
-      return `₵${formatted}`;
-    case "FCFA":
     default:
-      return `${formatted} ${currency}`;
+      return `₵${formatted}`;
   }
 }
+
+/** Ghana's major economic hub cities */
+export const GHANA_CITIES = [
+  "Accra",
+  "Kumasi",
+  "Tamale",
+  "Takoradi",
+  "Cape Coast",
+  "Tema",
+  "Koforidua",
+  "Sunyani",
+  "Ho",
+  "Wa",
+] as const;
+
+export type GhanaCity = typeof GHANA_CITIES[number];
 
 export function getDaysDifference(start: Date | string, end: Date | string): number {
   const s = typeof start === "string" ? new Date(start) : start;

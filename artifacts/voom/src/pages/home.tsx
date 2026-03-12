@@ -1,25 +1,42 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { CarCard } from "@/components/car-card";
 import { Input, Button } from "@/components/ui-elements";
 import { useGetCars } from "@workspace/api-client-react";
-import { Search, SlidersHorizontal, Car as CarIcon, Star, ShieldCheck, Lock, MessageCircle, CalendarCheck, Key, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
+import { Search, SlidersHorizontal, Car as CarIcon, Star, ShieldCheck, Lock, MessageCircle, CalendarCheck, Key, ArrowRight, MapPin, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
+import { GHANA_CITIES } from "@/lib/utils";
 
 const CATEGORIES = ["All", "SUV", "Sedan", "Luxury", "Van", "Truck"];
 
 export default function Home() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+  const [cityOpen, setCityOpen] = useState(false);
+  const [selectedCity, setSelectedCity] = useState("");
+  const cityRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (cityRef.current && !cityRef.current.contains(e.target as Node)) {
+        setCityOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const searchQuery = [selectedCity, search].filter(Boolean).join(" ");
 
   const { data: cars, isLoading } = useGetCars({
     query: {
-      queryKey: ["/api/cars", category, search],
+      queryKey: ["/api/cars", category, searchQuery],
     }
   }, {
     request: {
-      url: `/api/cars?available=true${category !== 'All' ? `&category=${category}` : ''}${search ? `&searchQuery=${search}` : ''}` as any
+      url: `/api/cars?available=true${category !== 'All' ? `&category=${category}` : ''}${searchQuery ? `&searchQuery=${searchQuery}` : ''}` as any
     }
   });
 
@@ -51,17 +68,64 @@ export default function Home() {
                 Premium peer-to-peer car rental across West Africa. Verified hosts, insured trips, and unforgettable experiences.
               </p>
               
-              <div className="flex items-center bg-background rounded-2xl p-2 shadow-xl shadow-black/5 border border-border/50 max-w-md mx-auto lg:mx-0">
+              <div className="flex items-center bg-background rounded-2xl p-2 shadow-xl shadow-black/5 border border-border/50 max-w-lg mx-auto lg:mx-0">
+                {/* City dropdown */}
+                <div ref={cityRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setCityOpen(!cityOpen)}
+                    className="flex items-center gap-2 h-14 px-4 rounded-xl hover:bg-secondary transition-colors text-sm font-medium whitespace-nowrap"
+                  >
+                    <MapPin className="w-4 h-4 text-primary shrink-0" />
+                    <span className={selectedCity ? "text-foreground" : "text-muted-foreground"}>
+                      {selectedCity || "All Cities"}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${cityOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  <AnimatePresence>
+                    {cityOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full left-0 mt-2 w-48 bg-background rounded-xl border border-border shadow-xl z-50 py-1 max-h-64 overflow-y-auto"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => { setSelectedCity(""); setCityOpen(false); }}
+                          className={`w-full text-left px-4 py-2.5 text-sm hover:bg-secondary transition-colors ${!selectedCity ? "text-primary font-semibold" : "text-foreground"}`}
+                        >
+                          All Cities
+                        </button>
+                        {GHANA_CITIES.map(city => (
+                          <button
+                            key={city}
+                            type="button"
+                            onClick={() => { setSelectedCity(city); setCityOpen(false); }}
+                            className={`w-full text-left px-4 py-2.5 text-sm hover:bg-secondary transition-colors ${selectedCity === city ? "text-primary font-semibold" : "text-foreground"}`}
+                          >
+                            {city}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <div className="w-px h-8 bg-border/50 mx-1" />
+
+                {/* Search input */}
                 <div className="flex-1 relative">
-                  <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input 
-                    placeholder="City, airport, or address..." 
-                    className="border-0 focus-visible:ring-0 bg-transparent pl-12 h-14 text-lg"
+                  <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Make, model..."
+                    className="border-0 focus-visible:ring-0 bg-transparent pl-10 h-14 text-base"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-                <Button size="lg" className="rounded-xl px-8">Search</Button>
+                <Button size="lg" className="rounded-xl px-6">Search</Button>
               </div>
             </motion.div>
             
