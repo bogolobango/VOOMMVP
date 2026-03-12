@@ -6,7 +6,7 @@ export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
   bookingId: integer("booking_id").notNull(),
   amount: integer("amount").notNull(),
-  currency: text("currency").notNull().default("FCFA"),
+  currency: text("currency").notNull().default("GHS"),
   method: text("method").notNull(),
   providerPaymentId: text("provider_payment_id"),
   status: text("status").notNull().default("pending"),

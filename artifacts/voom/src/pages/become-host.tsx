@@ -17,7 +17,7 @@ export default function BecomeHost() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [type, setType] = useState("Sedan");
   const [locationStr, setLocationStr] = useState("");
-  const [dailyRate, setDailyRate] = useState(25000);
+  const [dailyRate, setDailyRate] = useState(250);
   const [imageUrl, setImageUrl] = useState("");
 
   const createCar = useCreateCar({
@@ -35,7 +35,7 @@ export default function BecomeHost() {
   const handleSubmit = () => {
     createCar.mutate({
       data: {
-        make, model, year, type, location: locationStr, dailyRate, currency: "FCFA", imageUrl,
+        make, model, year, type, location: locationStr, dailyRate, currency: "GHS", imageUrl,
         color: "Black", licensePlate: "XX-000-XX", features: [], transmission: "Automatic", fuelType: "Petrol"
       }
     });
@@ -100,15 +100,15 @@ export default function BecomeHost() {
               <div className="space-y-6">
                 <div>
                   <Label>Pickup Location (City or Area)</Label>
-                  <Input placeholder="e.g. Douala, Bonapriso" value={locationStr} onChange={e => setLocationStr(e.target.value)} />
+                  <Input placeholder="e.g. Accra, East Legon" value={locationStr} onChange={e => setLocationStr(e.target.value)} />
                 </div>
                 <div>
-                  <Label>Daily Rate (FCFA)</Label>
+                  <Label>Daily Rate (GHS ₵)</Label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-muted-foreground">FCFA</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-muted-foreground">₵</span>
                     <Input type="number" className="pl-16 font-bold text-lg" value={dailyRate} onChange={e => setDailyRate(parseInt(e.target.value))} />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">We recommend between 20,000 and 50,000 FCFA for standard cars.</p>
+                  <p className="text-xs text-muted-foreground mt-2">We recommend between 150 and 500 GHS for standard cars.</p>
                 </div>
               </div>
             </div>

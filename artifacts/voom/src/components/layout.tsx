@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Home, Heart, Calendar, MessageCircle, User, LayoutDashboard, Car as CarIcon, LogOut } from "lucide-react";
 import voomLogo from "/voom-logo.png";
 import { useAppStore } from "@/store/use-app-store";
-import { useGetMe, useLogout } from "@workspace/api-client-react";
+import { useGetMe, useLogout, useGetMessages } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { isHostMode } = useAppStore();
   const { data: user } = useGetMe({ query: { retry: false } });
+  const { data: messageThreads } = useGetMessages({ query: { retry: false, enabled: !!user } });
+  const unreadCount = messageThreads?.reduce((sum: number, t: any) => sum + (t.unreadCount || 0), 0) || 0;
 
   const renterNav = [
     { icon: Home, label: "Explore", href: "/" },
@@ -111,6 +113,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 isActive ? "bg-primary/10" : ""
               )}>
                 <item.icon className={cn("w-5 h-5 transition-transform duration-300", isActive ? "scale-110" : "scale-100")} />
+                {item.label === "Messages" && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full text-[10px] font-bold flex items-center justify-center">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </div>
               <span className="text-[10px] font-medium mt-1">{item.label}</span>
             </Link>

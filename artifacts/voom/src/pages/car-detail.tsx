@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRoute } from "wouter";
 import { Layout } from "@/components/layout";
 import { Button, Card, Badge, Input, Label } from "@/components/ui-elements";
 import { useGetCar } from "@workspace/api-client-react";
-import { ChevronLeft, Star, MapPin, Users, Fuel, Settings2, ShieldCheck, Check } from "lucide-react";
+import { ChevronLeft, Star, MapPin, Users, Fuel, Settings2, ShieldCheck, Check, MessageCircle, Car as CarIcon } from "lucide-react";
 import { formatCurrency, getDaysDifference } from "@/lib/utils";
-import { reserveCarOnWhatsApp } from "@/lib/whatsapp";
+import { reserveCarOnWhatsApp, contactHostOnWhatsApp } from "@/lib/whatsapp";
 import useEmblaCarousel from "embla-carousel-react";
 
 export default function CarDetail() {
@@ -13,12 +13,25 @@ export default function CarDetail() {
   const carId = parseInt(params?.id || "0");
   
   const { data: car, isLoading } = useGetCar(carId);
-  const [emblaRef] = useEmblaCarousel();
+  const [emblaRef, emblaApi] = useEmblaCarousel();
+  const [selectedIndex, setSelectedIndex] = useState(0);
   
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
-  
+  const [failedImages, setFailedImages] = useState<Set<number>>(new Set());
+  const handleImageError = useCallback((index: number) => {
+    setFailedImages(prev => new Set(prev).add(index));
+  }, []);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
+    emblaApi.on("select", onSelect);
+    onSelect();
+    return () => { emblaApi.off("select", onSelect); };
+  }, [emblaApi]);
+
   if (isLoading) return <Layout><div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div></Layout>;
   if (!car) return <Layout><div className="p-8 text-center text-xl font-bold">Car not found</div></Layout>;
 
@@ -52,11 +65,30 @@ export default function CarDetail() {
                 {images.map((img, i) => (
                   <div key={i} className="flex-[0_0_100%] min-w-0">
                     <div className="aspect-[4/3] lg:aspect-[16/9] w-full bg-secondary relative">
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      {failedImages.has(i) ? (
+                        <div className="w-full h-full bg-gradient-to-br from-secondary to-secondary/50 flex items-center justify-center">
+                          <CarIcon className="w-20 h-20 text-muted-foreground/20" />
+                        </div>
+                      ) : (
+                        <img src={img} alt={`${car.make} ${car.model} photo ${i + 1}`} className="w-full h-full object-cover" onError={() => handleImageError(i)} />
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Carousel Dots */}
+            <div className="flex justify-center gap-2 mt-4 px-4 lg:px-0">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => emblaApi?.scrollTo(i)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    i === selectedIndex ? "bg-primary w-6" : "bg-border"
+                  }`}
+                />
+              ))}
             </div>
 
             <div className="px-4 lg:px-0 space-y-8">
@@ -118,6 +150,40 @@ export default function CarDetail() {
                   </div>
                 </div>
               )}
+
+              {/* Voom Protection */}
+              <div>
+                <h3 className="text-xl font-bold mb-4">Voom Protection</h3>
+                <div className="bg-card rounded-2xl border border-border/50 divide-y divide-border/50">
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">Host Verified</p>
+                      <p className="text-xs text-muted-foreground">This host has been ID-verified by Voom</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <CarIcon className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">Vehicle Inspected</p>
+                      <p className="text-xs text-muted-foreground">All listed cars pass our quality check</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 p-4">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <MessageCircle className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">24/7 Support</p>
+                      <p className="text-xs text-muted-foreground">Reach us anytime via WhatsApp</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -173,12 +239,27 @@ export default function CarDetail() {
                   Book Now
                 </Button>
                 <p className="text-center text-xs text-muted-foreground mt-4">You won't be charged yet</p>
+                <button
+                  onClick={() => contactHostOnWhatsApp(car.make, car.model)}
+                  className="w-full mt-3 h-12 rounded-xl border-2 border-[#25D366] text-[#25D366] font-semibold hover:bg-[#25D366]/5 transition-colors flex items-center justify-center gap-2"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  Chat on WhatsApp
+                </button>
               </Card>
             </div>
           </div>
 
         </div>
       </div>
+
+      {/* Mobile floating WhatsApp button */}
+      <button
+        onClick={() => contactHostOnWhatsApp(car.make, car.model)}
+        className="lg:hidden fixed bottom-24 right-4 z-50 w-14 h-14 bg-[#25D366] rounded-full shadow-lg flex items-center justify-center hover:bg-[#25D366]/90 transition-colors"
+      >
+        <MessageCircle className="w-7 h-7 text-white" />
+      </button>
 
       {/* Mobile Sticky Booking Bar */}
       <div className="lg:hidden fixed bottom-0 inset-x-0 bg-background border-t border-border/50 p-4 pb-safe flex items-center justify-between z-50 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">

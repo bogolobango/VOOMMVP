@@ -1,5 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { storage } from "../lib/storage";
+import { db } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -24,31 +25,38 @@ router.post("/", async (req: Request, res: Response) => {
     const end = new Date(endDate);
     if (start >= end) return res.status(400).json({ message: "End date must be after start date" });
 
-    const hasConflict = await storage.hasBookingConflict(car.id, start, end);
-    if (hasConflict) return res.status(409).json({ message: "Car is already booked for these dates" });
-
     const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     const totalAmount = days * car.dailyRate;
     const platformFee = Math.round(totalAmount * PLATFORM_FEE_PERCENT / 100);
     const hostPayout = totalAmount - platformFee;
 
-    const booking = await storage.createBooking({
-      carId: car.id,
-      userId,
-      hostId: car.hostId,
-      startDate: start,
-      endDate: end,
-      pickupLocation,
-      dropoffLocation,
-      totalAmount,
-      currency: car.currency,
-      paymentMethod: paymentMethod || null,
-      status: "pending",
-    } as any);
+    const booking = await db.transaction(async (tx) => {
+      const hasConflict = await storage.hasBookingConflict(car.id, start, end);
+      if (hasConflict) throw new Error("CONFLICT");
 
-    await storage.updateBooking(booking.id, { platformFee, hostPayout });
-    return res.status(201).json({ ...booking, platformFee, hostPayout });
+      const created = await storage.createBooking({
+        carId: car.id,
+        userId,
+        hostId: car.hostId,
+        startDate: start,
+        endDate: end,
+        pickupLocation,
+        dropoffLocation,
+        totalAmount,
+        currency: car.currency,
+        paymentMethod: paymentMethod || null,
+        status: "pending",
+      } as any);
+
+      await storage.updateBooking(created.id, { platformFee, hostPayout });
+      return { ...created, platformFee, hostPayout };
+    });
+
+    return res.status(201).json(booking);
   } catch (error) {
+    if ((error as Error).message === "CONFLICT") {
+      return res.status(409).json({ message: "Car is already booked for these dates" });
+    }
     return res.status(400).json({ message: (error as Error).message });
   }
 });

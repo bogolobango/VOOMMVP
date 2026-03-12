@@ -3,8 +3,9 @@ import { Layout } from "@/components/layout";
 import { CarCard } from "@/components/car-card";
 import { Input, Button } from "@/components/ui-elements";
 import { useGetCars } from "@workspace/api-client-react";
-import { Search, SlidersHorizontal, Car as CarIcon, Star, ShieldCheck } from "lucide-react";
+import { Search, SlidersHorizontal, Car as CarIcon, Star, ShieldCheck, Lock, MessageCircle, CalendarCheck, Key, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { Link } from "wouter";
 
 const CATEGORIES = ["All", "SUV", "Sedan", "Luxury", "Van", "Truck"];
 
@@ -92,13 +93,85 @@ export default function Home() {
                   <Star className="w-5 h-5 text-warning fill-warning" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold">4.9/5 Average</p>
-                  <p className="text-xs text-muted-foreground">From 10k+ reviews</p>
+                  <p className="text-sm font-bold">4.8★ from 200+ trips</p>
+                  <p className="text-xs text-muted-foreground">Trusted in Accra</p>
                 </div>
               </div>
             </motion.div>
           </div>
         </div>
+      </div>
+
+      {/* Trust Strip */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-10 mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+        >
+          <div className="bg-card rounded-2xl border border-border/50 p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Verified Hosts</p>
+              <p className="text-xs text-muted-foreground">Every host is ID-verified</p>
+            </div>
+          </div>
+          <div className="bg-card rounded-2xl border border-border/50 p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+              <Lock className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Insured Trips</p>
+              <p className="text-xs text-muted-foreground">All rentals include basic coverage</p>
+            </div>
+          </div>
+          <div className="bg-card rounded-2xl border border-border/50 p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <MessageCircle className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Instant Support</p>
+              <p className="text-xs text-muted-foreground">We reply on WhatsApp in &lt;5 min</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* How Voom Works */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <h2 className="text-2xl font-display font-bold mb-6 text-center">How Voom Works</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="text-center p-6">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Search className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="font-bold mb-1">Find Your Car</h3>
+              <p className="text-sm text-muted-foreground">Browse verified cars near you</p>
+            </div>
+            <div className="text-center p-6">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <CalendarCheck className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="font-bold mb-1">Book Instantly</h3>
+              <p className="text-sm text-muted-foreground">Reserve via WhatsApp — no payment until pickup</p>
+            </div>
+            <div className="text-center p-6">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Key className="w-7 h-7 text-primary" />
+              </div>
+              <h3 className="font-bold mb-1">Hit the Road</h3>
+              <p className="text-sm text-muted-foreground">Pick up the keys and enjoy your trip</p>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* Main Content */}
@@ -129,7 +202,23 @@ export default function Home() {
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={i} className="animate-pulse bg-secondary rounded-2xl h-[320px]" />
+              <div key={i} className="bg-card rounded-2xl border border-border/50 overflow-hidden">
+                <div className="aspect-[4/3] w-full bg-secondary animate-pulse" />
+                <div className="p-5 space-y-3">
+                  <div className="flex justify-between">
+                    <div className="space-y-2 flex-1">
+                      <div className="h-5 bg-secondary rounded-lg w-3/4 animate-pulse" />
+                      <div className="h-3 bg-secondary rounded-lg w-1/2 animate-pulse" />
+                    </div>
+                    <div className="h-6 w-16 bg-secondary rounded-lg animate-pulse" />
+                  </div>
+                  <div className="h-px bg-border/50 mt-4" />
+                  <div className="flex gap-4">
+                    <div className="h-4 w-16 bg-secondary rounded animate-pulse" />
+                    <div className="h-4 w-16 bg-secondary rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         ) : cars?.length === 0 ? (
@@ -153,6 +242,24 @@ export default function Home() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Become a Host CTA */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="bg-gradient-to-br from-primary to-red-700 rounded-3xl p-8 sm:p-12 text-center text-white"
+        >
+          <h2 className="text-3xl font-display font-bold mb-3">Own a car? Start earning today.</h2>
+          <p className="text-white/80 mb-8 max-w-md mx-auto">List your vehicle on Voom and earn money while it sits in your driveway.</p>
+          <Link href="/become-host">
+            <button className="bg-white text-primary font-bold px-8 py-4 rounded-xl text-lg hover:bg-white/90 transition-colors inline-flex items-center gap-2">
+              List Your Car <ArrowRight className="w-5 h-5" />
+            </button>
+          </Link>
+        </motion.div>
       </div>
     </Layout>
   );

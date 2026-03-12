@@ -45,7 +45,7 @@ export default function Bookings() {
               <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
                 <Car className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-bold mb-2">No {tab} trips</h3>
+              <h3 className="text-xl font-bold mb-2">{tab === "upcoming" ? "Your next adventure starts here 🚗" : "No past trips yet"}</h3>
               <p className="text-muted-foreground mb-6">When you book a car, your itinerary will appear here.</p>
               <Link href="/">
                 <button className="text-primary font-semibold hover:underline">Explore cars</button>
