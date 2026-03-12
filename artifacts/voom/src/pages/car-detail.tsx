@@ -1,18 +1,16 @@
 import { useState } from "react";
-import { useRoute, useLocation } from "wouter";
+import { useRoute } from "wouter";
 import { Layout } from "@/components/layout";
 import { Button, Card, Badge, Input, Label } from "@/components/ui-elements";
-import { useGetCar, useCreateBooking, useGetMe } from "@workspace/api-client-react";
-import { ChevronLeft, Star, MapPin, Users, Fuel, Settings2, ShieldCheck, Check, MessageCircle } from "lucide-react";
+import { useGetCar } from "@workspace/api-client-react";
+import { ChevronLeft, Star, MapPin, Users, Fuel, Settings2, ShieldCheck, Check } from "lucide-react";
 import { formatCurrency, getDaysDifference } from "@/lib/utils";
 import { reserveCarOnWhatsApp } from "@/lib/whatsapp";
 import useEmblaCarousel from "embla-carousel-react";
 
 export default function CarDetail() {
   const [, params] = useRoute("/cars/:id");
-  const [, setLocation] = useLocation();
   const carId = parseInt(params?.id || "0");
-  const { data: user } = useGetMe();
   
   const { data: car, isLoading } = useGetCar(carId);
   const [emblaRef] = useEmblaCarousel();
@@ -21,12 +19,6 @@ export default function CarDetail() {
   const [endDate, setEndDate] = useState("");
   const [pickupLocation, setPickupLocation] = useState("");
   
-  const createBooking = useCreateBooking({
-    mutation: {
-      onSuccess: () => setLocation("/bookings")
-    }
-  });
-
   if (isLoading) return <Layout><div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div></Layout>;
   if (!car) return <Layout><div className="p-8 text-center text-xl font-bold">Car not found</div></Layout>;
 
@@ -38,21 +30,6 @@ export default function CarDetail() {
 
   const days = startDate && endDate ? getDaysDifference(new Date(startDate), new Date(endDate)) : 0;
   const total = days > 0 ? days * car.dailyRate : car.dailyRate;
-
-  const handleBooking = () => {
-    if (!user) return setLocation("/auth");
-    if (!startDate || !endDate || !pickupLocation) return alert("Fill all fields");
-    
-    createBooking.mutate({
-      data: {
-        carId: car.id,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
-        pickupLocation,
-        dropoffLocation: pickupLocation, // same for simplicity
-      }
-    });
-  };
 
   return (
     <Layout>
@@ -183,12 +160,8 @@ export default function CarDetail() {
                   </div>
                 )}
 
-                <Button className="w-full" size="lg" onClick={handleBooking} isLoading={createBooking.isPending}>
-                  Request to Book
-                </Button>
                 <Button
-                  className="w-full mt-3"
-                  variant="outline"
+                  className="w-full"
                   size="lg"
                   onClick={() => reserveCarOnWhatsApp(
                     car.make, car.model, car.dailyRate, car.currency || "GHS",
@@ -197,8 +170,7 @@ export default function CarDetail() {
                     endDate ? new Date(endDate) : null
                   )}
                 >
-                  <MessageCircle className="w-5 h-5 mr-2 text-green-500" />
-                  Reserve via WhatsApp
+                  Book Now
                 </Button>
                 <p className="text-center text-xs text-muted-foreground mt-4">You won't be charged yet</p>
               </Card>
@@ -214,24 +186,18 @@ export default function CarDetail() {
           <p className="text-xl font-bold text-primary">{formatCurrency(car.dailyRate, car.currency)}</p>
           <p className="text-xs text-muted-foreground font-medium">per day</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            size="lg"
-            variant="outline"
-            className="rounded-xl px-4"
-            onClick={() => reserveCarOnWhatsApp(
-              car.make, car.model, car.dailyRate, car.currency || "GHS",
-              car.city || car.location,
-              startDate ? new Date(startDate) : null,
-              endDate ? new Date(endDate) : null
-            )}
-          >
-            <MessageCircle className="w-5 h-5 text-green-500" />
-          </Button>
-          <Button size="lg" className="rounded-xl px-8" onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}>
-            Book Now
-          </Button>
-        </div>
+        <Button
+          size="lg"
+          className="rounded-xl px-10"
+          onClick={() => reserveCarOnWhatsApp(
+            car.make, car.model, car.dailyRate, car.currency || "GHS",
+            car.city || car.location,
+            startDate ? new Date(startDate) : null,
+            endDate ? new Date(endDate) : null
+          )}
+        >
+          Book Now
+        </Button>
       </div>
     </Layout>
   );
