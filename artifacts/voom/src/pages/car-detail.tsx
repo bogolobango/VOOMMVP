@@ -4,10 +4,9 @@ import { Layout } from "@/components/layout";
 import { Button, Card, Badge, Input, Label } from "@/components/ui-elements";
 import { useGetCar, useCreateBooking, useGetMe } from "@workspace/api-client-react";
 import { ChevronLeft, Star, MapPin, Users, Fuel, Settings2, ShieldCheck, Check, MessageCircle } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
-import { contactHostOnWhatsApp } from "@/lib/whatsapp";
+import { formatCurrency, getDaysDifference } from "@/lib/utils";
+import { reserveCarOnWhatsApp } from "@/lib/whatsapp";
 import useEmblaCarousel from "embla-carousel-react";
-import { format, differenceInDays } from "date-fns";
 
 export default function CarDetail() {
   const [, params] = useRoute("/cars/:id");
@@ -37,7 +36,7 @@ export default function CarDetail() {
     "https://images.unsplash.com/photo-1503376713917-f584e27f6946?auto=format&fit=crop&q=80&w=1200"
   ];
 
-  const days = startDate && endDate ? differenceInDays(new Date(endDate), new Date(startDate)) : 0;
+  const days = startDate && endDate ? getDaysDifference(new Date(startDate), new Date(endDate)) : 0;
   const total = days > 0 ? days * car.dailyRate : car.dailyRate;
 
   const handleBooking = () => {
@@ -191,10 +190,15 @@ export default function CarDetail() {
                   className="w-full mt-3"
                   variant="outline"
                   size="lg"
-                  onClick={() => contactHostOnWhatsApp(car.make, car.model)}
+                  onClick={() => reserveCarOnWhatsApp(
+                    car.make, car.model, car.dailyRate, car.currency || "GHS",
+                    car.city || car.location,
+                    startDate ? new Date(startDate) : null,
+                    endDate ? new Date(endDate) : null
+                  )}
                 >
                   <MessageCircle className="w-5 h-5 mr-2 text-green-500" />
-                  Contact via WhatsApp
+                  Reserve via WhatsApp
                 </Button>
                 <p className="text-center text-xs text-muted-foreground mt-4">You won't be charged yet</p>
               </Card>
@@ -215,7 +219,12 @@ export default function CarDetail() {
             size="lg"
             variant="outline"
             className="rounded-xl px-4"
-            onClick={() => contactHostOnWhatsApp(car.make, car.model)}
+            onClick={() => reserveCarOnWhatsApp(
+              car.make, car.model, car.dailyRate, car.currency || "GHS",
+              car.city || car.location,
+              startDate ? new Date(startDate) : null,
+              endDate ? new Date(endDate) : null
+            )}
           >
             <MessageCircle className="w-5 h-5 text-green-500" />
           </Button>
