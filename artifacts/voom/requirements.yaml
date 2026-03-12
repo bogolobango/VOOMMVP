@@ -1,0 +1,21 @@
+packages:
+  "framer-motion": "For fluid page transitions, micro-interactions, and spatial animations"
+  "date-fns": "For elegant date formatting in bookings and messages"
+  "react-hook-form": "For robust form state management in auth and become-host flows"
+  "@hookform/resolvers": "For zod schema validation integration"
+  "zustand": "For lightweight global state management (host mode toggle)"
+  "embla-carousel-react": "For touch-friendly swipeable image carousels on car detail pages"
+  "clsx": "For conditional class merging in UI components"
+  "tailwind-merge": "For conflict-free tailwind class merging"
+
+images:
+  - path: "artifacts/voom/public/images/hero-car.png"
+    description: "A sleek, dark luxury SUV parked in a modern minimalist architectural setting with dramatic, moody lighting and deep indigo reflections"
+    aspect_ratio: "16:9"
+  - path: "artifacts/voom/public/images/avatar-placeholder.png"
+    description: "A clean, modern illustrated avatar of a smiling person, minimalist flat vector style on a soft pastel background"
+    aspect_ratio: "1:1"
+
+notes:
+  - API hooks and types are imported from @workspace/api-client-react
+  - The app uses a mobile-first bottom navigation paradigm that adapts to a side/top nav on larger screens

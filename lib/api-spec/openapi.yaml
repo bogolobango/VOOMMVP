@@ -1,22 +1,37 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Voom Car Rental API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: cars
+    description: Car listings
+  - name: bookings
+    description: Booking management
+  - name: favorites
+    description: Favorite cars
+  - name: messages
+    description: Messaging
+  - name: reviews
+    description: Reviews
+  - name: payments
+    description: Payment processing
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +39,1086 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/Error"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /users/profile:
+    patch:
+      operationId: updateProfile
+      tags: [users]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/phone:
+    patch:
+      operationId: updatePhone
+      tags: [users]
+      summary: Update phone number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phoneNumber:
+                  type: string
+              required: [phoneNumber]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/profile-picture:
+    post:
+      operationId: updateProfilePicture
+      tags: [users]
+      summary: Update profile picture
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profilePicture:
+                  type: string
+              required: [profilePicture]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /cars:
+    get:
+      operationId: getCars
+      tags: [cars]
+      summary: Get all cars
+      parameters:
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: minPrice
+          schema:
+            type: number
+        - in: query
+          name: maxPrice
+          schema:
+            type: number
+        - in: query
+          name: available
+          schema:
+            type: boolean
+        - in: query
+          name: searchQuery
+          schema:
+            type: string
+        - in: query
+          name: sort
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: offset
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Car"
+    post:
+      operationId: createCar
+      tags: [cars]
+      summary: Create car listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCarRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Car"
+
+  /cars/{id}:
+    get:
+      operationId: getCar
+      tags: [cars]
+      summary: Get car by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Car"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: updateCar
+      tags: [cars]
+      summary: Update car listing
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCarRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Car"
+    delete:
+      operationId: deleteCar
+      tags: [cars]
+      summary: Delete car listing
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /cars/host/me:
+    get:
+      operationId: getHostCars
+      tags: [cars]
+      summary: Get current host's cars
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Car"
+
+  /bookings:
+    get:
+      operationId: getBookings
+      tags: [bookings]
+      summary: Get current user's bookings
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookingWithCar"
+    post:
+      operationId: createBooking
+      tags: [bookings]
+      summary: Create booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookingRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+
+  /bookings/{id}:
+    get:
+      operationId: getBooking
+      tags: [bookings]
+      summary: Get booking by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{id}/approve:
+    put:
+      operationId: approveBooking
+      tags: [bookings]
+      summary: Approve booking
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{id}/reject:
+    put:
+      operationId: rejectBooking
+      tags: [bookings]
+      summary: Reject booking
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{id}/cancel:
+    put:
+      operationId: cancelBooking
+      tags: [bookings]
+      summary: Cancel booking
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/host/me:
+    get:
+      operationId: getHostBookings
+      tags: [bookings]
+      summary: Get host's bookings
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookingWithCar"
+
+  /favorites:
+    get:
+      operationId: getFavorites
+      tags: [favorites]
+      summary: Get user's favorite cars
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Car"
+    post:
+      operationId: addFavorite
+      tags: [favorites]
+      summary: Add car to favorites
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                carId:
+                  type: integer
+              required: [carId]
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Favorite"
+
+  /favorites/{carId}:
+    delete:
+      operationId: removeFavorite
+      tags: [favorites]
+      summary: Remove car from favorites
+      parameters:
+        - in: path
+          name: carId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /favorites/check/{carId}:
+    get:
+      operationId: checkFavorite
+      tags: [favorites]
+      summary: Check if car is favorited
+      parameters:
+        - in: path
+          name: carId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isFavorite:
+                    type: boolean
+                required: [isFavorite]
+
+  /messages:
+    get:
+      operationId: getMessages
+      tags: [messages]
+      summary: Get user's message conversations
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MessageThread"
+    post:
+      operationId: sendMessage
+      tags: [messages]
+      summary: Send message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  /messages/{userId}:
+    get:
+      operationId: getConversation
+      tags: [messages]
+      summary: Get conversation with user
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+
+  /reviews:
+    post:
+      operationId: createReview
+      tags: [reviews]
+      summary: Create review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReviewRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+
+  /reviews/car/{carId}:
+    get:
+      operationId: getCarReviews
+      tags: [reviews]
+      summary: Get car reviews
+      parameters:
+        - in: path
+          name: carId
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+
+  /payments/stripe/create:
+    post:
+      operationId: createStripePayment
+      tags: [payments]
+      summary: Create Stripe payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bookingId:
+                  type: integer
+                idempotencyKey:
+                  type: string
+              required: [bookingId]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentResponse"
+
+  /payments/momo/initiate:
+    post:
+      operationId: initiateMomoPayment
+      tags: [payments]
+      summary: Initiate MoMo payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bookingId:
+                  type: integer
+                phoneNumber:
+                  type: string
+                idempotencyKey:
+                  type: string
+              required: [bookingId, phoneNumber]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentResponse"
+
 components:
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required: [success]
+
+    RegisterRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+        username:
+          type: string
+        phoneNumber:
+          type: string
+        password:
+          type: string
+      required: [fullName, username, phoneNumber, password]
+
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required: [username, password]
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        fullName:
+          type: string
+        profilePicture:
+          type: string
+        phoneNumber:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        fullName:
+          type: string
+          nullable: true
+        phoneNumber:
+          type: string
+          nullable: true
+        profilePicture:
+          type: string
+          nullable: true
+        role:
+          type: string
+          nullable: true
+        isHost:
+          type: boolean
+          nullable: true
+        isVerified:
+          type: boolean
+          nullable: true
+        verificationStatus:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, username]
+
+    Car:
+      type: object
+      properties:
+        id:
+          type: integer
+        hostId:
+          type: integer
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        type:
+          type: string
+        dailyRate:
+          type: integer
+        currency:
+          type: string
+        location:
+          type: string
+        city:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+        images:
+          type: array
+          items:
+            type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        licensePlate:
+          type: string
+          nullable: true
+        rating:
+          type: integer
+          nullable: true
+        ratingCount:
+          type: integer
+          nullable: true
+        available:
+          type: boolean
+          nullable: true
+        features:
+          type: array
+          items:
+            type: string
+          nullable: true
+        status:
+          type: string
+          nullable: true
+        transmission:
+          type: string
+          nullable: true
+        fuelType:
+          type: string
+          nullable: true
+        seats:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, hostId, make, model, year, type, dailyRate, currency, location]
+
+    CreateCarRequest:
+      type: object
+      properties:
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        type:
+          type: string
+        dailyRate:
+          type: integer
+        currency:
+          type: string
+        location:
+          type: string
+        city:
+          type: string
+        country:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        color:
+          type: string
+        licensePlate:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        transmission:
+          type: string
+        fuelType:
+          type: string
+        seats:
+          type: integer
+      required: [make, model, year, type, dailyRate, currency, location]
+
+    UpdateCarRequest:
+      type: object
+      properties:
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        type:
+          type: string
+        dailyRate:
+          type: integer
+        currency:
+          type: string
+        location:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        available:
+          type: boolean
+        status:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        transmission:
+          type: string
+        fuelType:
+          type: string
+        seats:
+          type: integer
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: integer
+        carId:
+          type: integer
+        userId:
+          type: integer
+        hostId:
+          type: integer
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        pickupLocation:
+          type: string
+        dropoffLocation:
+          type: string
+        totalAmount:
+          type: integer
+        platformFee:
+          type: integer
+          nullable: true
+        hostPayout:
+          type: integer
+          nullable: true
+        currency:
+          type: string
+        paymentMethod:
+          type: string
+          nullable: true
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, carId, userId, hostId, startDate, endDate, pickupLocation, dropoffLocation, totalAmount, currency, status]
+
+    BookingWithCar:
+      allOf:
+        - $ref: "#/components/schemas/Booking"
+        - type: object
+          properties:
+            car:
+              $ref: "#/components/schemas/Car"
+
+    CreateBookingRequest:
+      type: object
+      properties:
+        carId:
+          type: integer
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        pickupLocation:
+          type: string
+        dropoffLocation:
+          type: string
+        paymentMethod:
+          type: string
+      required: [carId, startDate, endDate, pickupLocation, dropoffLocation]
+
+    Favorite:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        carId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, userId, carId]
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        senderId:
+          type: integer
+        receiverId:
+          type: integer
+        bookingId:
+          type: integer
+          nullable: true
+        content:
+          type: string
+        read:
+          type: boolean
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, senderId, receiverId, content]
+
+    MessageThread:
+      type: object
+      properties:
+        userId:
+          type: integer
+        username:
+          type: string
+        fullName:
+          type: string
+          nullable: true
+        profilePicture:
+          type: string
+          nullable: true
+        lastMessage:
+          type: string
+        lastMessageAt:
+          type: string
+          format: date-time
+          nullable: true
+        unreadCount:
+          type: integer
+      required: [userId, username, lastMessage, unreadCount]
+
+    SendMessageRequest:
+      type: object
+      properties:
+        receiverId:
+          type: integer
+        content:
+          type: string
+        bookingId:
+          type: integer
+      required: [receiverId, content]
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        bookingId:
+          type: integer
+        reviewerId:
+          type: integer
+        revieweeId:
+          type: integer
+        carId:
+          type: integer
+        rating:
+          type: integer
+        text:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, bookingId, reviewerId, revieweeId, carId, rating]
+
+    CreateReviewRequest:
+      type: object
+      properties:
+        bookingId:
+          type: integer
+        revieweeId:
+          type: integer
+        carId:
+          type: integer
+        rating:
+          type: integer
+        text:
+          type: string
+      required: [bookingId, revieweeId, carId, rating]
+
+    PaymentResponse:
+      type: object
+      properties:
+        paymentId:
+          type: integer
+        amount:
+          type: integer
+        currency:
+          type: string
+        status:
+          type: string
+        message:
+          type: string
+          nullable: true
+      required: [paymentId, amount, currency, status]
