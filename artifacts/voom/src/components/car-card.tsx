@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Link } from "wouter";
-import { Heart, Star, MapPin, Users, Fuel } from "lucide-react";
+import { Heart, Star, MapPin, Users, Fuel, ShieldCheck } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import type { Car } from "@workspace/api-client-react";
 import { useAddFavorite, useRemoveFavorite, useCheckFavorite } from "@workspace/api-client-react";
@@ -10,6 +11,7 @@ export function CarCard({ car }: { car: Car }) {
   const queryClient = useQueryClient();
   const { data: checkData } = useCheckFavorite(car.id);
   const isFavorite = checkData?.isFavorite || false;
+  const [imgError, setImgError] = useState(false);
 
   const addFav = useAddFavorite({
     mutation: { onSuccess: () => queryClient.invalidateQueries({ queryKey: [`/api/favorites/check/${car.id}`] }) }
@@ -34,14 +36,24 @@ export function CarCard({ car }: { car: Car }) {
     <Link href={`/cars/${car.id}`}>
       <motion.div 
         whileHover={{ y: -4 }}
+        whileTap={{ scale: 0.98 }}
         className="group relative bg-card rounded-2xl border border-border/50 overflow-hidden shadow-lg shadow-black/5 hover:shadow-xl hover:border-primary/20 transition-all duration-300 cursor-pointer"
       >
         <div className="aspect-[4/3] w-full relative overflow-hidden bg-secondary">
-          <img 
-            src={displayImage} 
-            alt={`${car.make} ${car.model}`}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          {imgError ? (
+            <div className="w-full h-full bg-gradient-to-br from-secondary to-secondary/50 flex items-center justify-center">
+              <svg className="w-16 h-16 text-muted-foreground/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0H21M3.375 14.25V6.75A1.125 1.125 0 014.5 5.625h7.875a1.125 1.125 0 011.125 1.125v7.5" />
+              </svg>
+            </div>
+          ) : (
+            <img
+              src={displayImage}
+              alt={`${car.make} ${car.model}`}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              onError={() => setImgError(true)}
+            />
+          )}
           <button 
             onClick={toggleFavorite}
             className="absolute top-3 right-3 p-2.5 bg-background/80 backdrop-blur-md rounded-full shadow-md hover:bg-background transition-colors z-10"
@@ -55,6 +67,10 @@ export function CarCard({ car }: { car: Car }) {
               {car.rating.toFixed(1)}
             </div>
           )}
+          <div className="absolute bottom-3 left-3 px-2.5 py-1 bg-background/80 backdrop-blur-md rounded-full text-xs font-bold flex items-center gap-1 shadow-md text-green-600">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Verified
+          </div>
         </div>
 
         <div className="p-5">
@@ -66,6 +82,10 @@ export function CarCard({ car }: { car: Car }) {
               <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                 <MapPin className="w-3.5 h-3.5" />
                 {car.city || car.location}
+              </p>
+              <p className="text-xs text-green-600 flex items-center gap-1.5 mt-1">
+                <span className="w-2 h-2 bg-green-500 rounded-full inline-block" />
+                Responds quickly
               </p>
             </div>
             <div className="text-right">

@@ -15,13 +15,24 @@ export default function Messages() {
 
         {isLoading ? (
           <div className="space-y-4">
-            {[1, 2, 3].map(i => <div key={i} className="h-24 bg-secondary rounded-2xl animate-pulse" />)}
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="p-4 bg-card rounded-2xl border border-border/50 flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-secondary animate-pulse shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-secondary rounded-lg w-1/3 animate-pulse" />
+                  <div className="h-3 bg-secondary rounded-lg w-2/3 animate-pulse" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : threads?.length === 0 ? (
           <div className="text-center py-24 bg-card rounded-3xl border border-border border-dashed">
             <MessageCircle className="w-16 h-16 mx-auto text-muted-foreground opacity-30 mb-4" />
-            <h3 className="text-xl font-bold mb-2">No messages</h3>
-            <p className="text-muted-foreground">When you contact a host, your conversations will appear here.</p>
+            <h3 className="text-xl font-bold mb-2">No conversations yet</h3>
+            <p className="text-muted-foreground mb-6">Browse cars to connect with hosts</p>
+            <Link href="/">
+              <button className="text-primary font-semibold hover:underline">Browse cars</button>
+            </Link>
           </div>
         ) : (
           <div className="space-y-3">
