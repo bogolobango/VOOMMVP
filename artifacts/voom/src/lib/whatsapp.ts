@@ -18,7 +18,9 @@ export function reserveCarOnWhatsApp(
 ) {
   const number = hostPhone ? hostPhone.replace(/\D/g, "") : VOOM_WHATSAPP_NUMBER;
   const carName = `${carMake} ${carModel}`;
-  const price = `${dailyRate} ${currency || "GHS"}`;
+  const cur = currency === "FCFA" ? "GHS" : (currency || "GHS");
+  const rate = currency === "FCFA" ? Math.max(50, Math.round(dailyRate / 38)) : dailyRate;
+  const price = `₵${rate} ${cur}`;
   const startStr = startDate
     ? startDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
     : "TBD";

@@ -23,10 +23,13 @@ export function formatCurrency(amount: number, currency: string = "GHS"): string
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   };
-  const formatted = amount.toLocaleString(undefined, formatOptions);
-  switch (currency) {
+  // Normalize legacy FCFA values to GHS on the fly (1 GHS ≈ 38 FCFA)
+  const amt = currency === "FCFA" ? Math.max(50, Math.round(amount / 38)) : amount;
+  const cur = currency === "FCFA" ? "GHS" : currency;
+  const formatted = amt.toLocaleString(undefined, formatOptions);
+  switch (cur) {
     case "USD":
-      return `$${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      return `$${amt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     case "GHS":
     default:
       return `₵${formatted}`;
