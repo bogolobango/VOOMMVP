@@ -33,7 +33,7 @@
   --background: 210 40% 98%; /* Soft off-white */
   --foreground: 222 47% 11%; /* Deep navy/black */
   
-  --primary: 226 100% 55%; /* Vibrant electric blue */
+  --primary: 0 77% 47%; /* Voom red */
   --primary-foreground: 0 0% 100%;
   
   --secondary: 214 32% 91%; /* Soft blue-gray */
@@ -56,7 +56,7 @@
   
   --border: 214 32% 91%;
   --input: 214 32% 91%;
-  --ring: 226 100% 55%;
+  --ring: 0 77% 47%;
   
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
@@ -68,7 +68,7 @@
   --background: 222 47% 8%; /* Very deep blue-black */
   --foreground: 210 40% 98%;
   
-  --primary: 226 100% 65%; /* Slightly lighter blue for dark mode contrast */
+  --primary: 0 77% 57%; /* Voom red - lighter for dark mode */
   --primary-foreground: 0 0% 100%;
   
   --secondary: 217 33% 17%;
@@ -85,7 +85,7 @@
   
   --border: 217 33% 17%;
   --input: 217 33% 17%;
-  --ring: 226 100% 65%;
+  --ring: 0 77% 57%;
   
   --card: 222 47% 11%;
   --card-foreground: 210 40% 98%;
